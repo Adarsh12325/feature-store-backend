@@ -1,28 +1,4 @@
 #!/usr/bin/env python3
-"""
-scripts/benchmark.py
---------------------
-Latency benchmarking script for the Feature Store GET /features/{user_id}
-endpoint.
-
-Methodology
------------
-1. Connect to the running API (default: http://localhost:8000).
-2. Execute NUM_REQUESTS sequential GET requests using randomly selected
-   valid user IDs drawn from the ingested population.
-3. Record the wall-clock response time for every request.
-4. Sort the latency distribution and compute key percentiles
-   (p50, p90, p95, p99, max).
-5. Print a formatted report and exit with code 1 if p90 > 50ms.
-
-Usage
------
-  # With the Docker stack running:
-  python scripts/benchmark.py
-
-  # Override defaults:
-  API_BASE_URL=http://localhost:8000 NUM_REQUESTS=2000 python scripts/benchmark.py
-"""
 
 from __future__ import annotations
 
@@ -38,13 +14,12 @@ import requests
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 NUM_REQUESTS = int(os.getenv("NUM_REQUESTS", "1000"))
-CONCURRENCY = int(os.getenv("BENCH_CONCURRENCY", "1"))   # 1 = sequential
+CONCURRENCY = int(os.getenv("BENCH_CONCURRENCY", "1"))
 USER_POPULATION = 100_000
 P90_BUDGET_MS = 50.0
 
 
 def build_session() -> requests.Session:
-    """Reuse a single HTTP session to avoid TCP setup overhead per request."""
     session = requests.Session()
     adapter = requests.adapters.HTTPAdapter(
         pool_connections=CONCURRENCY,
@@ -56,19 +31,12 @@ def build_session() -> requests.Session:
 
 
 def fetch_single(session: requests.Session, user_id: str) -> float:
-    """
-    Issue one GET request and return the wall-clock latency in milliseconds.
-    Returns -1.0 if the request fails or returns a non-200 status.
-    """
     url = f"{API_BASE_URL}/features/{user_id}"
     start = time.perf_counter()
     try:
         resp = session.get(url, timeout=10)
         elapsed_ms = (time.perf_counter() - start) * 1000.0
-        if resp.status_code == 200:
-            return elapsed_ms
-        # 404 means user not in store — still a valid, fast response
-        if resp.status_code == 404:
+        if resp.status_code in (200, 404):
             return elapsed_ms
         print(f"  Unexpected status {resp.status_code} for {user_id}", file=sys.stderr)
         return -1.0
@@ -87,7 +55,6 @@ def run_benchmark() -> None:
     print(f"  P90 Budget  : {P90_BUDGET_MS} ms")
     print("-" * 60)
 
-    # Verify the API is reachable before starting
     try:
         health = requests.get(f"{API_BASE_URL}/health", timeout=5)
         health.raise_for_status()
@@ -109,7 +76,6 @@ def run_benchmark() -> None:
     user_ids = [f"user_{random.randint(1, USER_POPULATION):06d}" for _ in range(NUM_REQUESTS)]
 
     if CONCURRENCY == 1:
-        # Sequential mode — most representative of single-user p90
         for i, uid in enumerate(user_ids):
             ms = fetch_single(session, uid)
             if ms >= 0:
@@ -119,7 +85,6 @@ def run_benchmark() -> None:
             if (i + 1) % 100 == 0:
                 print(f"  Progress: {i + 1}/{NUM_REQUESTS} requests completed...")
     else:
-        # Concurrent mode — tests throughput under parallel load
         with ThreadPoolExecutor(max_workers=CONCURRENCY) as pool:
             futures = {pool.submit(fetch_single, session, uid): uid for uid in user_ids}
             completed = 0
@@ -137,7 +102,6 @@ def run_benchmark() -> None:
         print("\n  ERROR: No successful responses recorded. Check API connectivity.")
         sys.exit(1)
 
-    # ── Compute statistics ────────────────────────────────────────────────────
     latencies.sort()
     n = len(latencies)
 
@@ -154,7 +118,6 @@ def run_benchmark() -> None:
     min_ms = latencies[0]
     max_ms = latencies[-1]
 
-    # ── Print report ──────────────────────────────────────────────────────────
     print("\n" + "=" * 60)
     print("  RESULTS")
     print("=" * 60)
