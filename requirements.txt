@@ -1,15 +1,21 @@
 # Feature Store Backend — Python Dependencies
 # ============================================
-# Minimum version pins for reproducible builds.
-# The Docker image (python:3.10-slim) satisfies all version constraints.
+#
+# IMPORTANT — Python Version Compatibility:
+#   The Docker image (python:3.10-slim) installs all packages correctly.
+#   For local development on Python 3.13+, pydantic>=2.10.0 is required
+#   because older pydantic-core versions lack pre-built wheels for Python 3.13+.
+#
+# Install:
+#   pip install -r requirements.txt
 
 # ── Web Framework ─────────────────────────────────────────────────────────────
-fastapi>=0.111.0,<0.115.0
-uvicorn[standard]>=0.30.0,<0.35.0   # ASGI server with uvloop + httptools
+fastapi>=0.111.0,<0.116.0
+uvicorn[standard]>=0.30.0,<0.35.0    # ASGI server with uvloop + httptools
 
 # ── Configuration Management ──────────────────────────────────────────────────
-pydantic>=2.7.0,<3.0.0
-pydantic-settings>=2.3.0,<3.0.0
+pydantic>=2.10.0,<3.0.0              # 2.10+ has pre-built wheels for Python 3.13+
+pydantic-settings>=2.5.0,<3.0.0
 
 # ── Redis Client ──────────────────────────────────────────────────────────────
 redis>=5.0.4,<6.0.0                  # Includes redis.asyncio for async support

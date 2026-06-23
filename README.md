@@ -155,7 +155,7 @@ feature-store-backend/
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/feature-store-backend.git
+git clone https://github.com/Adarsh12325/feature-store-backend.git
 cd feature-store-backend
 
 # Build images and start all three services in detached mode

@@ -166,7 +166,7 @@ def run_benchmark() -> None:
     print(f"  Mean latency      : {mean:.2f} ms")
     print(f"  Std deviation     : {stdev:.2f} ms")
     print(f"  P50 (median)      : {p50:.2f} ms")
-    print(f"  P90               : {p90:.2f} ms  ← SLA target: < {P90_BUDGET_MS} ms")
+    print(f"  P90               : {p90:.2f} ms  <- SLA target: < {P90_BUDGET_MS} ms")
     print(f"  P95               : {p95:.2f} ms")
     print(f"  P99               : {p99:.2f} ms")
     print(f"  Max latency       : {max_ms:.2f} ms")
@@ -174,9 +174,9 @@ def run_benchmark() -> None:
 
     sla_pass = p90 <= P90_BUDGET_MS
     if sla_pass:
-        print(f"\n  ✅  P90 PASS — {p90:.2f} ms ≤ {P90_BUDGET_MS} ms SLA target.")
+        print(f"\n  [PASS] P90 SLA: {p90:.2f} ms <= {P90_BUDGET_MS} ms SLA target.")
     else:
-        print(f"\n  ❌  P90 FAIL — {p90:.2f} ms > {P90_BUDGET_MS} ms SLA target.")
+        print(f"\n  [FAIL] P90 SLA: {p90:.2f} ms > {P90_BUDGET_MS} ms SLA target.")
         print("      Investigate Redis connection latency or API overhead.")
 
     print()

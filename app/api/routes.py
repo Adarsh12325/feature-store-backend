@@ -144,7 +144,7 @@ async def get_user_features(
             detail=f"User '{user_id}' was not found in the feature store.",
         )
 
-    logger.debug("GET /features/%s → %d features returned", user_id, len(features))
+    logger.debug("GET /features/%s -> %d features returned", user_id, len(features))
     return FeatureVector(user_id=user_id, features=features)
 
 
@@ -222,7 +222,7 @@ async def get_batch_features(
             feature_vectors.append(FeatureVector(user_id=uid, features={}))
 
     logger.debug(
-        "POST /features/batch → %d/%d users resolved",
+        "POST /features/batch -> %d/%d users resolved",
         found_count,
         len(user_ids),
     )

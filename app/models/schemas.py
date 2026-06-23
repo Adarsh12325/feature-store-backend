@@ -12,7 +12,7 @@ the Redis client.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -31,12 +31,14 @@ class BatchFeatureRequest(BaseModel):
       - Each individual user_id must be a non-empty string.
     """
 
-    user_ids: List[str] = Field(
-        ...,
-        min_length=1,
-        max_length=100,
-        description="A list of user IDs to fetch features for (1–100 entries).",
-    )
+    user_ids: Annotated[
+        List[str],
+        Field(
+            min_length=1,
+            max_length=100,
+            description="A list of user IDs to fetch features for (1–100 entries).",
+        ),
+    ]
 
     @field_validator("user_ids")
     @classmethod
@@ -45,8 +47,6 @@ class BatchFeatureRequest(BaseModel):
         cleaned = [uid.strip() for uid in v]
         if any(uid == "" for uid in cleaned):
             raise ValueError("user_ids must not contain empty or blank strings.")
-        if len(cleaned) == 0:
-            raise ValueError("user_ids must contain at least one entry.")
         return cleaned
 
     model_config = {

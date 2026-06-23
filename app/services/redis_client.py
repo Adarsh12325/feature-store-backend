@@ -109,7 +109,7 @@ def create_redis_pool() -> ConnectionPool:
     """
     settings = get_settings()
     logger.info(
-        "Creating Redis connection pool → %s:%s",
+        "Creating Redis connection pool -> %s:%s",
         settings.redis_host,
         settings.redis_port,
     )
