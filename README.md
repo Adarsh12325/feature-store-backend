@@ -75,7 +75,7 @@ The system is composed of three containerised microservices orchestrated via Doc
 
 This is the most important architectural decision in the system. Two common approaches exist for storing feature vectors in Redis:
 
-### ❌ Anti-pattern: Serialised JSON Strings
+###  Anti-pattern: Serialised JSON Strings
 
 ```
 SET user:123:features '{"age": 25, "is_active": true, "tier": "premium"}'
@@ -86,7 +86,7 @@ SET user:123:features '{"age": 25, "is_active": true, "tier": "premium"}'
 - The entire string must be transferred over the network on every read, even if only one field is needed.
 - No atomic partial updates; concurrent writes can cause race conditions.
 
-### ✅ Correct approach: Redis Hashes
+###  Correct approach: Redis Hashes
 
 ```
 HSET user:123:features age 25 is_active True tier premium
@@ -98,7 +98,7 @@ HSET user:123:features age 25 is_active True tier premium
 - **Memory efficiency**: Redis uses a compact **listpack** (previously ziplist) encoding for hashes with fewer than 128 fields, significantly reducing memory overhead compared to a raw string key per field.
 - **Idempotency**: `HSET` is naturally idempotent — re-running the ingestion pipeline with the same data leaves the database in an identical, correct state.
 
-### ✅ Correct approach: Redis Sets for Indexing
+###  Correct approach: Redis Sets for Indexing
 
 ```
 SADD all_users 123
