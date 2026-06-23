@@ -1,0 +1,65 @@
+# .gitignore — Feature Store Backend
+# ============================================================================
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+.env/
+
+# ── Environment files (NEVER commit real credentials) ────────────────────────
+.env
+*.env
+!.env.example          # Allow the example template to be tracked
+
+# ── Testing & coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+*.coveragerc
+
+# ── Type checking ─────────────────────────────────────────────────────────────
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyright/
+
+# ── IDE & editor files ────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Do not ignore docker-compose.yml or Dockerfile (they must be tracked).
+
+# ── Redis data (local dev, if mounted outside Docker volume) ──────────────────
+redis-data/
+*.rdb
+*.aof
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Benchmark output ──────────────────────────────────────────────────────────
+benchmark_results*.json
+benchmark_results*.txt

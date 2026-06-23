@@ -1,0 +1,10 @@
+# .gitattributes
+# Force LF line endings for all text files so Docker and Linux containers
+# receive files without Windows CRLF sequences (which break shell scripts).
+* text=auto eol=lf
+
+# Explicitly mark binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.whl binary

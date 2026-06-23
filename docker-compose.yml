@@ -1,0 +1,143 @@
+# ============================================================================
+# docker-compose.yml — Feature Store Backend Orchestration
+# ============================================================================
+#
+# Defines three services that together form the Feature Store system:
+#
+#   redis             — In-memory data store with AOF persistence
+#   api-service       — FastAPI serving layer (GET/POST /features/*)
+#   ingestion-worker  — Continuous synthetic feature generation pipeline
+#
+# Quick start:
+#   docker-compose up --build -d
+#
+# Tear down (preserving Redis data volume):
+#   docker-compose down
+#
+# Tear down and wipe all data:
+#   docker-compose down -v
+# ============================================================================
+
+version: "3.9"
+
+services:
+
+  # ── Redis Feature Store ────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: feature-store-redis
+    restart: unless-stopped
+
+    # Enable Append Only File (AOF) persistence so the in-memory dataset
+    # survives container restarts. Without --appendonly yes, Redis uses
+    # RDB snapshots (point-in-time) which may lose recent writes on crash.
+    command: redis-server --appendonly yes --appendfsync everysec
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      # Mount a named volume to /data so Redis AOF and RDB files persist
+      # across docker-compose down/up cycles.
+      - redis-data:/data
+
+    # Healthcheck: redis-cli ping must succeed before dependent services start.
+    # This eliminates the race condition where the API tries to connect before
+    # Redis has finished loading its AOF file from disk.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+    networks:
+      - feature-store-net
+
+  # ── API Service ────────────────────────────────────────────────────────────
+  api-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: feature-store-api
+    restart: unless-stopped
+
+    # Override the default CMD to launch uvicorn (defined in Dockerfile as default,
+    # explicitly listed here for clarity and easy modification).
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --workers 1
+      --log-level info
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+
+    env_file:
+      - .env.example        # Reads defaults; override by creating a real .env
+
+    # Prevents the API from starting before Redis passes its health check.
+    # Without this, the API logs connection errors on cold starts.
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+    networks:
+      - feature-store-net
+
+  # ── Feature Ingestion Worker ───────────────────────────────────────────────
+  ingestion-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: feature-store-ingestion
+    restart: unless-stopped
+
+    # Override the default uvicorn CMD to run the ingestion script instead.
+    command: python scripts/ingest_features.py
+
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+      INGESTION_BATCH_SIZE: 500
+      INGESTION_INTERVAL_SEC: 1.0
+
+    env_file:
+      - .env.example
+
+    # Must wait for Redis to be healthy before writing any data.
+    depends_on:
+      redis:
+        condition: service_healthy
+
+    networks:
+      - feature-store-net
+
+# ── Named Volumes ──────────────────────────────────────────────────────────────
+volumes:
+  redis-data:
+    driver: local
+
+# ── Virtual Network ────────────────────────────────────────────────────────────
+# All three services communicate over an isolated bridge network.
+# Service names (redis, api-service, ingestion-worker) act as DNS hostnames
+# within this network — no hardcoded IP addresses required.
+networks:
+  feature-store-net:
+    driver: bridge
